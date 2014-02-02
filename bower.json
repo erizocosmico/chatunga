@@ -1,0 +1,28 @@
+{
+  "name": "chatunga",
+  "main": "index.js",
+  "version": "0.0.0",
+  "homepage": "https://github.com/mvader/chatunga",
+  "authors": [
+    "José Miguel Molina Arboledas <rd4091@gmail.com>"
+  ],
+  "description": "Simple realtime webchat.",
+  "keywords": [
+    "realtime",
+    "web",
+    "chat"
+  ],
+  "license": "BSD-2 clause",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "3.*",
+    "socket.io": "*",
+    "underscore": "*"
+  }
+}
