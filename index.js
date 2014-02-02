@@ -20,12 +20,14 @@ io.sockets.on('connection', function(sock) {
     var ip = sock.handshake.address;
 
     sock.on('access', function(data) {
+        // TODO delete expired clients
         if (data.username in usernames) {
             io.sockets.emit('message', {
                 message: data.username + ' already exists. Choose another username.',
                 type: 'error'
             });
         } else {
+            io.sockets.emit('ready');
             usernames.push(data.username);
             clients[ip] = {
                 username: data.username,
@@ -36,7 +38,7 @@ io.sockets.on('connection', function(sock) {
                 lastAction: new Date().getTime() / 1000
             };
 
-            io.sockets.emit('message', {
+            io.sockets.broadcast.emit('message', {
                 message: data.username + ' has logged in.',
                 type: 'system'
             });
@@ -44,7 +46,7 @@ io.sockets.on('connection', function(sock) {
     });
 
     sock.on('send', function(data) {
-        io.sockets.emit('message', {
+        io.sockets.broadcast.emit('message', {
             message: data.message,
             time: new Date().getTime() / 1000,
             type: 'user',
