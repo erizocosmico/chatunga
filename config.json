@@ -1,4 +1,19 @@
 {
     "port": 3000,
-    "ip": "172.21.113.250"
+    "ip": "127.0.0.1",
+    "enableNapaBot": true,
+    "enableAdminCommands": true,
+    "adminIps": [],
+    "colors": [
+        "#DEA5A4",
+        "#C23B22",
+        "#779ECB",
+        "#FFB347",
+        "#B39EB5",
+        "#836953",
+        "#03C03C",
+        "#2897B7",
+        "#59955C",
+        "#FFB60B"
+    ]
 }

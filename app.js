@@ -29,7 +29,8 @@ app.get('/', function(req, res) {
 
 var io = socketio.listen(app.listen(app.get('port'))),
     clients = {},
-    usernames = [];
+    usernames = [],
+    banList = [];
 
 io.sockets.on('connection', function(sock) {
     try {
@@ -37,7 +38,7 @@ io.sockets.on('connection', function(sock) {
 
         setInterval(function() {
             for (var i in clients) {
-                if ((new Date().getTime() / 1000) - clients[i].lastAction > 5000) {
+                if ((new Date().getTime() / 1000) - clients[i].lastAction > 72000) {
                     delete clients[i];
                     if (i == ip) {
                         sock.emit('logged-out');
@@ -47,9 +48,13 @@ io.sockets.on('connection', function(sock) {
 
             sock.emit('user-login', clients);
             sock.broadcast.emit('user-login', clients);
-        }, 5000);
+        }, 60000);
 
         sock.on('access', function(data) {
+            if (data.username.length > 30) {
+                data.username = data.username.substring(0, 30);
+            }
+            
             if (data.username in usernames) {
                 sock.emit('message', {
                     message: data.username + ' already exists. Choose another username.',
@@ -62,8 +67,7 @@ io.sockets.on('connection', function(sock) {
                 clients[ip] = {
                     username: data.username,
                     color: function() {
-                        var colors = ['crimson', 'royalblue', 'purple', 'red', 'green'];
-                        return colors[Math.floor(Math.random()*colors.length)];
+                        return config.colors[Math.floor(Math.random()*config.colors.length)];
                     }(),
                     lastAction: new Date().getTime() / 1000
                 };
@@ -84,10 +88,76 @@ io.sockets.on('connection', function(sock) {
 
         sock.on('send', function(data) {
 
-            if (data.message[0] === '/' && ip === config.ip) {
-                // TODO: Admin commands
+            if (data.message[0] === '/' &&
+                (ip === config.ip || config.adminIps.indexOf(ip) !== -1) &&
+                config.enableAdminCommands) {
+                    var command = data.message.substring(1, data.message.indexOf(' '));
+                    
+                    switch (command) {
+                    case 'ban':
+                        var msgParts = data.message.split(' ');
+                        if (msgParts.length > 1) {
+                            // Ban by IP
+                            var ipToBan = msgParts[1];
+                            if (/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/.test(ipToBan)
+                                && banList.indexOf(ipToBan) === -1) {
+                                banList.push(ipToBan);
+                            } else {
+                                // Ban by username
+                                var username = data.message.substring(data.message.indexOf(' ') + 1);
+                                for (var i in clients) {
+                                    if (clients[i].username === username
+                                        && banList.indexOf(i) === -1) {
+                                        banList.push(i);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case 'unban':
+                        var msgParts = data.message.split(' ');
+                        if (msgParts.length > 1) {
+                            // Unban by IP
+                            var ipToUnBan = msgParts[1];
+                            if (/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/.test(ipToUnBan)
+                                && banList.indexOf(ipToUnBan) !== -1) {
+                                var i = banList.indexOf(ipToUnBan);
+                                banList.splice(i, i+1);
+                            } else {
+                                // Unban by username
+                                var username = data.message.substring(data.message.indexOf(' ') + 1);
+                                for (var i in clients) {
+                                    if (clients[i].username === username
+                                        && banList.indexOf(i) !== -1) {
+                                        var index = banList.indexOf(i);
+                                        banList.splice(index, index+1);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    return;
             } else {
-                // TODO: Parse urls
+                // Is the user banned?
+                for (var i = 0; i < banList.length; i++) {
+                    if (banList[i] === ip) {
+                        sock.emit('message', {
+                            message: 'Sorry, you are banned.',
+                            type: 'system' 
+                        });
+                        return;
+                    }
+                }
+
+                // Parse urls
+                var pattern = /\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/ig;
+                if (data.message.match(pattern)) {
+                    data.message = data.message.
+                        replace(pattern, '<a href="$1" target="_blank">$1</a>');
+                }
+
+                // Message data
                 var msgData = {
                     message: data.message,
                     time: new Date().getTime() / 1000,
@@ -97,12 +167,14 @@ io.sockets.on('connection', function(sock) {
                 };
             }
 
+            // Update last action
             clients[ip].lastAction = new Date().getTime() / 1000;
 
             sock.emit('message', msgData);
             sock.broadcast.emit('message', msgData);
 
-            if (/over 9000/gi.test(data.message)) {
+            // Napa bot
+            if (/over 9000/gi.test(data.message) && config.enableNapaBot) {
                 var msgDataBot = {
                     message: 'WHAT? NINE THOUSAND?',
                     time: new Date().getTime() / 1000,
