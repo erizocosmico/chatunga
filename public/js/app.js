@@ -41,6 +41,9 @@ document.addEventListener("DOMContentLoaded", function() {
         };
 
     setUsernameBtn.addEventListener('click', function() {
+        var tmp = document.createElement("DIV");
+            tmp.innerHTML = usernameText.value;
+            usernameText.value = tmp.textContent || tmp.innerText || "";
         if (usernameText.value.length > 0) {
             socket.emit('access', {
                 username: usernameText.value

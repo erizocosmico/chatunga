@@ -32,72 +32,90 @@ var io = socketio.listen(app.listen(app.get('port'))),
     usernames = [];
 
 io.sockets.on('connection', function(sock) {
-    var ip = sock.handshake.address.address;
+    try {
+        var ip = sock.handshake.address.address;
 
-    setInterval(function() {
-        for (var i in clients) {
-            if ((new Date().getTime() / 1000) - clients[i].lastAction > 5000) {
-                delete clients[i];
-                if (i == ip) {
-                    sock.emit('logged-out');
+        setInterval(function() {
+            for (var i in clients) {
+                if ((new Date().getTime() / 1000) - clients[i].lastAction > 5000) {
+                    delete clients[i];
+                    if (i == ip) {
+                        sock.emit('logged-out');
+                    }
                 }
             }
-        }
 
-        sock.emit('user-login', clients);
-        sock.broadcast.emit('user-login', clients);
-    }, 5000);
-
-    sock.on('access', function(data) {
-        if (data.username in usernames) {
-            sock.emit('message', {
-                message: data.username + ' already exists. Choose another username.',
-                type: 'error'
-            });
-        } else {
-            // Setup user
-            sock.emit('ready');
-            usernames.push(data.username);
-            clients[ip] = {
-                username: data.username,
-                color: function() {
-                    var colors = ['crimson', 'royalblue', 'purple', 'red', 'green'];
-                    return colors[Math.floor(Math.random()*colors.length)];
-                }(),
-                lastAction: new Date().getTime() / 1000
-            };
-            
-            // Send the list of logged users
             sock.emit('user-login', clients);
             sock.broadcast.emit('user-login', clients);
-            
-            // Send the notification message
-            data = {
-                message: data.username + ' has logged in.',
-                type: 'system'
-            };
-            sock.emit('message', data);
-            sock.broadcast.emit('message', data);
-        }
-    });
+        }, 5000);
 
-    sock.on('send', function(data) {
+        sock.on('access', function(data) {
+            if (data.username in usernames) {
+                sock.emit('message', {
+                    message: data.username + ' already exists. Choose another username.',
+                    type: 'error'
+                });
+            } else {
+                // Setup user
+                sock.emit('ready');
+                usernames.push(data.username);
+                clients[ip] = {
+                    username: data.username,
+                    color: function() {
+                        var colors = ['crimson', 'royalblue', 'purple', 'red', 'green'];
+                        return colors[Math.floor(Math.random()*colors.length)];
+                    }(),
+                    lastAction: new Date().getTime() / 1000
+                };
+                
+                // Send the list of logged users
+                sock.emit('user-login', clients);
+                sock.broadcast.emit('user-login', clients);
+                
+                // Send the notification message
+                data = {
+                    message: data.username + ' has logged in.',
+                    type: 'system'
+                };
+                sock.emit('message', data);
+                sock.broadcast.emit('message', data);
+            }
+        });
 
-        if (data.message[0] === '/' && ip === '127.0.0.1') {
-            // TODO: Admin commands
-        } else {
-            var msgData = {
-                message: data.message,
-                time: new Date().getTime() / 1000,
-                type: 'user',
-                user: clients[ip].username,
-                color: clients[ip].color
-            };
-        }
+        sock.on('send', function(data) {
 
-        clients[ip].lastAction = new Date().getTime() / 1000;
+            if (data.message[0] === '/' && ip === config.ip) {
+                // TODO: Admin commands
+            } else {
+                // TODO: Parse urls
+                var msgData = {
+                    message: data.message,
+                    time: new Date().getTime() / 1000,
+                    type: 'user',
+                    user: clients[ip].username,
+                    color: clients[ip].color
+                };
+            }
 
-        sock.emit('message', msgData);
-        sock.broadcast.emit('message', msgData);
-    });
+            clients[ip].lastAction = new Date().getTime() / 1000;
+
+            sock.emit('message', msgData);
+            sock.broadcast.emit('message', msgData);
+
+            if (/over 9000/gi.test(data.message)) {
+                var msgDataBot = {
+                    message: 'WHAT? NINE THOUSAND?',
+                    time: new Date().getTime() / 1000,
+                    type: 'user',
+                    user: "Napa BOT",
+                    color: "red"
+                };
+
+                sock.emit('message', msgDataBot);
+                sock.broadcast.emit('message', msgDataBot);
+            }
+        });
+    } catch (e) {
+        console.log(e);
+    }
 });
