@@ -1,7 +1,7 @@
 {
   "name": "chatunga",
   "main": "index.js",
-  "version": "0.0.0",
+  "version": "0.6.0",
   "homepage": "https://github.com/mvader/chatunga",
   "authors": [
     "José Miguel Molina Arboledas <rd4091@gmail.com>"
@@ -22,7 +22,6 @@
   ],
   "dependencies": {
     "bootstrap": "3.*",
-    "socket.io-client": "*",
-    "underscore": "*"
+    "socket.io-client": "*"
   }
 }
