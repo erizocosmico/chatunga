@@ -32,10 +32,23 @@ var io = socketio.listen(app.listen(app.get('port'))),
     usernames = [];
 
 io.sockets.on('connection', function(sock) {
-    var ip = sock.handshake.address;
+    var ip = sock.handshake.address.address;
+
+    setInterval(function() {
+        for (var i in clients) {
+            if ((new Date().getTime() / 1000) - clients[i].lastAction > 5000) {
+                delete clients[i];
+                if (i == ip) {
+                    sock.emit('logged-out');
+                }
+            }
+        }
+
+        sock.emit('user-login', clients);
+        sock.broadcast.emit('user-login', clients);
+    }, 5000);
 
     sock.on('access', function(data) {
-        // TODO delete expired clients
         if (data.username in usernames) {
             sock.emit('message', {
                 message: data.username + ' already exists. Choose another username.',
@@ -56,7 +69,7 @@ io.sockets.on('connection', function(sock) {
             
             // Send the list of logged users
             sock.emit('user-login', clients);
-            sock.broadcast.emit('user-login', clients[ip]);
+            sock.broadcast.emit('user-login', clients);
             
             // Send the notification message
             data = {
@@ -69,12 +82,22 @@ io.sockets.on('connection', function(sock) {
     });
 
     sock.on('send', function(data) {
-        sock.broadcast.emit('message', {
-            message: data.message,
-            time: new Date().getTime() / 1000,
-            type: 'user',
-            user: clients[ip].username,
-            color: clientes[ip].color
-        });
+
+        if (data.message[0] === '/' && ip === '127.0.0.1') {
+            // TODO: Admin commands
+        } else {
+            var msgData = {
+                message: data.message,
+                time: new Date().getTime() / 1000,
+                type: 'user',
+                user: clients[ip].username,
+                color: clients[ip].color
+            };
+        }
+
+        clients[ip].lastAction = new Date().getTime() / 1000;
+
+        sock.emit('message', msgData);
+        sock.broadcast.emit('message', msgData);
     });
 });

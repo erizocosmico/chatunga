@@ -1,0 +1,43 @@
+h3 {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+#chatbox-messages, #online-list-holder {
+	overflow-y: auto;
+	max-height: 500px;
+}
+
+div.message {
+	padding: 5px;
+	border-bottom: 1px solid #EEE;
+}
+
+.message-system {
+	background: #fcf8e3;
+	border-bottom-color: #faebcc !important;
+}
+
+span.time {
+	font-weight: bold;
+	color: #AAA;
+}
+
+span.username {
+	font-weight: bold;
+}
+
+ul#online-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	line-height: 1.6em;
+}
+
+ul#online-list li {
+	font-weight: bold;
+}
+
+#send-message-btn {
+	width: 100%;
+}
