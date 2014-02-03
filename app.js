@@ -1,18 +1,33 @@
 var express = require('express'),
-    app = express(),
     config = require('./config.json'),
-    socketio = require('socket.io');
+    socketio = require('socket.io'),
+    path = require('path'),
+    http = require('http'),
+    app = express();
 
-app.set('views', __dirname + '/templates');
-app.set('view engine', 'jade');
-app.engine('jade', require('jade').__express);
-app.use(express.static(__dirname + '/public'));
+app.set('port', config.port || 3000);
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+app.use(express.favicon());
+app.use(express.logger('dev'));
+app.use(express.bodyParser());
+app.use(express.methodOverride());
+app.use(app.router);
+app.use(express.static(path.join(__dirname, 'public')));
+
+if ('development' == app.get('env')) {
+  app.use(express.errorHandler());
+}
 
 app.get('/', function(req, res) {
-    res.render('index');
+    res.render('index', {
+        title : 'Chatunga',
+        port : app.get('port'),
+        ip : config.ip
+    });
 });
 
-var io = socketio.listen(app.listen(config.port)),
+var io = socketio.listen(app.listen(app.get('port'))),
     clients = {},
     usernames = [];
 
@@ -22,12 +37,13 @@ io.sockets.on('connection', function(sock) {
     sock.on('access', function(data) {
         // TODO delete expired clients
         if (data.username in usernames) {
-            io.sockets.emit('message', {
+            sock.emit('message', {
                 message: data.username + ' already exists. Choose another username.',
                 type: 'error'
             });
         } else {
-            io.sockets.emit('ready');
+            // Setup user
+            sock.emit('ready');
             usernames.push(data.username);
             clients[ip] = {
                 username: data.username,
@@ -37,16 +53,23 @@ io.sockets.on('connection', function(sock) {
                 }(),
                 lastAction: new Date().getTime() / 1000
             };
-
-            io.sockets.broadcast.emit('message', {
+            
+            // Send the list of logged users
+            sock.emit('user-login', clients);
+            sock.broadcast.emit('user-login', clients[ip]);
+            
+            // Send the notification message
+            data = {
                 message: data.username + ' has logged in.',
                 type: 'system'
-            });
+            };
+            sock.emit('message', data);
+            sock.broadcast.emit('message', data);
         }
     });
 
     sock.on('send', function(data) {
-        io.sockets.broadcast.emit('message', {
+        sock.broadcast.emit('message', {
             message: data.message,
             time: new Date().getTime() / 1000,
             type: 'user',
