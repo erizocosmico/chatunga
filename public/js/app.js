@@ -15,7 +15,7 @@ function renderMessage(data) {
 }
 
 function renderUser(user) {
-    return '<li style="color: ' + user.color + '">' + user.username + '</li>';
+    return '<li style="color: ' + user.color + '" alt="' + user.ip + '">' + user.username + '</li>';
 }
 
 document.addEventListener("DOMContentLoaded", function() {

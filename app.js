@@ -174,12 +174,12 @@ io.sockets.on('connection', function(sock) {
             sock.broadcast.emit('message', msgData);
 
             // Napa bot
-            if (/over 9000/gi.test(data.message) && config.enableNapaBot) {
+            if (/over 9000/gi.test(data.message) && config.enableNappaBot) {
                 var msgDataBot = {
                     message: 'WHAT? NINE THOUSAND?',
                     time: new Date().getTime() / 1000,
                     type: 'user',
-                    user: "Napa BOT",
+                    user: "Nappa BOT",
                     color: "red"
                 };
 
